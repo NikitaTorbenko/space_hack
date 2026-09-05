@@ -1,56 +1,56 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useUserStore } from '@/stores/user'
-import RussiaMap from '@/components/map/RussiaMap.vue'
-import ReserveModal from '@/components/map/ReserveModal.vue'
-import { PEOPLE_COMMENTS } from '@/data/misc'
-import { RANKS } from '@/data/gamification'
+import { onMounted, ref } from "vue";
+import { useUserStore } from "@/stores/user";
+import RussiaMap from "@/components/map/RussiaMap.vue";
+import ReserveModal from "@/components/map/ReserveModal.vue";
+import { PEOPLE_COMMENTS } from "@/data/misc";
+import { RANKS } from "@/data/gamification";
 
-const user = useUserStore()
-const selectedReserve = ref<string | null>(null)
-const modalOpen = ref(false)
+const user = useUserStore();
+const selectedReserve = ref<string | null>(null);
+const modalOpen = ref(false);
 
 function openReserve(id: string) {
-  selectedReserve.value = id
-  modalOpen.value = true
+  selectedReserve.value = id;
+  modalOpen.value = true;
 }
 
 const steps = [
   {
-    icon: '🛰️',
-    title: 'Смотри с орбиты',
-    text: 'Спутниковые снимки ДЗЗ находят очаги загрязнения и оценивают их. Осталось выбрать свой заповедник на карте.',
+    icon: "🛰️",
+    title: "Смотри с орбиты",
+    text: "Спутниковые снимки ДЗЗ находят очаги загрязнения и оценивают их. Осталось выбрать свой заповедник на карте.",
   },
   {
-    icon: '📝',
-    title: 'Записывайся',
-    text: 'Выбери уборку рядом, дату и займи место. Мест ограничено — на берегу важно не навредить природе.',
+    icon: "📝",
+    title: "Записывайся",
+    text: "Выбери уборку рядом, дату и займи место. Мест ограничено — на берегу важно не навредить природе.",
   },
   {
-    icon: '🧤',
-    title: 'Убирайся вместе',
-    text: 'Приезжай к точке встречи. Организатор — сотрудник ООПТ — выдаёт инвентарь и подтверждает участие.',
+    icon: "🧤",
+    title: "Убирайся вместе",
+    text: "Приезжай к точке встречи. Организатор — сотрудник ООПТ — выдаёт инвентарь и подтверждает участие.",
   },
   {
-    icon: '🏅',
-    title: 'Качай уровень',
-    text: 'Подтверждённая уборка приносит баллы, опыт и кг чистоты. Расти от «Следопыта» до «Легенды берега».',
+    icon: "🏅",
+    title: "Качай уровень",
+    text: "Подтверждённая уборка приносит баллы, опыт и кг чистоты. Расти от «Следопыта» до «Легенды берега».",
   },
-]
+];
 
 const heroStats = [
-  { value: '12 480', label: 'участников движения' },
-  { value: '84 т', label: 'отходов собрано' },
-  { value: '145', label: 'заповедных берегов в мониторинге' },
-]
+  { value: "12 480", label: "участников движения" },
+  { value: "84 т", label: "отходов собрано" },
+  { value: "145", label: "заповедных берегов в мониторинге" },
+];
 
 function scrollTo(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
 onMounted(() => {
-  user.markMapViewed()
-})
+  user.markMapViewed();
+});
 </script>
 
 <template>
@@ -62,20 +62,26 @@ onMounted(() => {
       <div class="container">
         <div class="hero__grid">
           <div class="hero__content">
-            <span class="hero__eyebrow">🌍 Экология + космические технологии</span>
+            <span class="hero__eyebrow"
+              >🌍 Экология + космические технологии</span
+            >
             <h1 class="hero__title">
               Чистый берег
               <br />
               <span class="gradient-text">начинается с карты</span>
             </h1>
             <p class="hero__text">
-              Мы соединили данные спутников, заповедники и волонтёров. Найди загрязнённый берег на
-              карте, запишись на уборку и получи опыт, баллы и звание — как в игре, только берег
-              реальный.
+              Мы соединили данные спутников, заповедники и волонтёров. Найди
+              загрязнённый берег на карте, запишись на уборку и получи опыт,
+              баллы и звание — как в игре, только берег реальный.
             </p>
             <div class="hero__actions">
-              <button class="btn btn--primary btn--lg" @click="scrollTo('map')">🚀 Найти уборку</button>
-              <button class="btn btn--ghost btn--lg" @click="scrollTo('how')">Как это работает</button>
+              <button class="btn btn--primary btn--lg" @click="scrollTo('map')">
+                🚀 Найти уборку
+              </button>
+              <button class="btn btn--ghost btn--lg" @click="scrollTo('how')">
+                Как это работает
+              </button>
             </div>
 
             <div class="hero__stats">
@@ -120,27 +126,30 @@ onMounted(() => {
 
     <!-- ======= MAP ======= -->
     <section id="map" class="section map-section">
-      <div class="map-gate" aria-hidden="true"></div>
       <div class="map-frame" v-reveal>
         <RussiaMap @select-reserve="openReserve" />
       </div>
-      <div class="map-gate map-gate--bottom" aria-hidden="true"></div>
 
       <div class="container">
         <div class="section-head map-caption" v-reveal>
           <span class="eyebrow">Интерактивная карта</span>
           <h2 class="section-head__title">
-            Загрязнения по данным ДЗЗ <span class="gradient-text">и точки уборок</span>
+            Загрязнения по данным ДЗЗ
+            <span class="gradient-text">и точки уборок</span>
           </h2>
           <p class="section-head__text">
-            Спутники Sentinel-2 и Landsat-9 фиксируют скопления отходов у побережий. Цвет региона
-            показывает нагрузку, цветные точки — очаги, зелёные «пины» — заповедники, где ждут
-            волонтёров. Нажми на пин и запишись на уборку.
+            Спутники Sentinel-2 и Landsat-9 фиксируют скопления отходов у
+            побережий. Цвет региона показывает нагрузку, цветные точки — очаги,
+            зелёные «пины» — заповедники, где ждут волонтёров. Нажми на пин и
+            запишись на уборку.
           </p>
         </div>
 
         <div class="map-hint">
-          <span>🛰️ Данные: Sentinel-2 · Landsat-9 · анализ СР Дата на платформе Яндекс.Облако</span>
+          <span
+            >🛰️ Данные: Sentinel-2 · Landsat-9 · анализ СР Дата на платформе
+            Яндекс.Облако</span
+          >
           <span>🧭 Пины-заповедники кликабельны</span>
         </div>
       </div>
@@ -152,18 +161,36 @@ onMounted(() => {
         <div class="section-head" v-reveal>
           <span class="eyebrow">Как это работает</span>
           <h2 class="section-head__title">
-            От экрана к настоящему берегу <span class="gradient-text">за 4 шага</span>
+            От экрана к настоящему берегу
+            <span class="gradient-text">за 4 шага</span>
           </h2>
         </div>
 
         <div class="steps">
-          <div v-for="(step, i) in steps" :key="i" class="step card" v-reveal :style="{ transitionDelay: i * 90 + 'ms' }">
+          <div
+            v-for="(step, i) in steps"
+            :key="i"
+            class="step card"
+            v-reveal
+            :style="{ transitionDelay: i * 90 + 'ms' }"
+          >
             <span class="step__num">0{{ i + 1 }}</span>
             <span class="step__icon">{{ step.icon }}</span>
             <h3 class="step__title">{{ step.title }}</h3>
             <p class="step__text">{{ step.text }}</p>
-            <svg class="step__arrow" v-if="i < steps.length - 1" viewBox="0 0 40 20" aria-hidden="true">
-              <path d="M0 10h34M28 3l8 7-8 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" />
+            <svg
+              class="step__arrow"
+              v-if="i < steps.length - 1"
+              viewBox="0 0 40 20"
+              aria-hidden="true"
+            >
+              <path
+                d="M0 10h34M28 3l8 7-8 7"
+                stroke="currentColor"
+                stroke-width="2"
+                fill="none"
+                stroke-linecap="round"
+              />
             </svg>
           </div>
         </div>
@@ -177,21 +204,40 @@ onMounted(() => {
           <div class="game-copy" v-reveal>
             <span class="eyebrow">Геймификация</span>
             <h2 class="section-head__title">
-              Помогая планете, <span class="gradient-text gradient-text--gold">качаешь себя</span>
+              Помогая планете,
+              <span class="gradient-text gradient-text--gold"
+                >качаешь себя</span
+              >
             </h2>
             <p class="section-head__text">
-              Каждая уборка приносит опыт и социальные баллы. Баллы открывают достижения, опыт —
-              новые звания и уровни. Чем тяжелее загрязнение — тем выше награда.
+              Каждая уборка приносит опыт и социальные баллы. Баллы открывают
+              достижения, опыт — новые звания и уровни. Чем тяжелее загрязнение
+              — тем выше награда.
             </p>
             <div class="game-perks">
-              <div class="perk"><span>🪙</span><b>Социальные баллы</b><small>за каждую уборку</small></div>
-              <div class="perk"><span>⚡</span><b>Опыт и уровни</b><small>растёшь от рейдов к рейдам</small></div>
-              <div class="perk"><span>🏅</span><b>Достижения</b><small>отслеживаются в кабинете</small></div>
+              <div class="perk">
+                <span>🪙</span><b>Социальные баллы</b
+                ><small>за каждую уборку</small>
+              </div>
+              <div class="perk">
+                <span>⚡</span><b>Опыт и уровни</b
+                ><small>растёшь от рейдов к рейдам</small>
+              </div>
+              <div class="perk">
+                <span>🏅</span><b>Достижения</b
+                ><small>отслеживаются в кабинете</small>
+              </div>
             </div>
-            <RouterLink class="btn btn--gold" to="/cabinet">Открыть кабинет</RouterLink>
+            <RouterLink class="btn btn--gold" to="/cabinet"
+              >Открыть кабинет</RouterLink
+            >
           </div>
 
-          <div class="ranks card" v-reveal :style="{ transitionDelay: '120ms' }">
+          <div
+            class="ranks card"
+            v-reveal
+            :style="{ transitionDelay: '120ms' }"
+          >
             <div class="ranks__head">
               <h3>Служебная лестница</h3>
               <span>нужно XP</span>
@@ -200,7 +246,9 @@ onMounted(() => {
               <div v-for="r in RANKS" :key="r.id" class="rank-row">
                 <span class="rank-row__icon">{{ r.icon }}</span>
                 <span class="rank-row__name">{{ r.title }}</span>
-                <span class="rank-row__xp">{{ r.minXp.toLocaleString('ru-RU') }}</span>
+                <span class="rank-row__xp">{{
+                  r.minXp.toLocaleString("ru-RU")
+                }}</span>
               </div>
             </div>
           </div>
@@ -217,7 +265,12 @@ onMounted(() => {
         </div>
 
         <div class="quotes">
-          <div v-for="(q, i) in PEOPLE_COMMENTS" :key="i" class="quote card" v-reveal>
+          <div
+            v-for="(q, i) in PEOPLE_COMMENTS"
+            :key="i"
+            class="quote card"
+            v-reveal
+          >
             <div class="quote__avatar">{{ q.avatar }}</div>
             <p class="quote__text">{{ q.text }}</p>
             <span class="quote__name">{{ q.name }}</span>
@@ -227,18 +280,29 @@ onMounted(() => {
         <div class="cta card" v-reveal>
           <div>
             <h3>Готов (-а) выйти на берег?</h3>
-            <p>Заведи профиль, открой карту и запишись на первую уборку. Уже через два клика.</p>
+            <p>
+              Заведи профиль, открой карту и запишись на первую уборку. Уже
+              через два клика.
+            </p>
           </div>
           <div class="cta__actions">
-            <RouterLink class="btn btn--gold" to="/login">Создать профиль</RouterLink>
-            <RouterLink class="btn btn--ghost" to="/about">О проекте</RouterLink>
+            <RouterLink class="btn btn--gold" to="/login"
+              >Создать профиль</RouterLink
+            >
+            <RouterLink class="btn btn--ghost" to="/about"
+              >О проекте</RouterLink
+            >
           </div>
         </div>
       </div>
     </section>
   </main>
 
-  <ReserveModal :reserve-id="selectedReserve" :open="modalOpen" @close="modalOpen = false" />
+  <ReserveModal
+    :reserve-id="selectedReserve"
+    :open="modalOpen"
+    @close="modalOpen = false"
+  />
 </template>
 
 <style scoped lang="scss">
@@ -256,14 +320,22 @@ onMounted(() => {
     &--1 {
       width: 520px;
       height: 520px;
-      background: radial-gradient(circle, rgba(45, 212, 191, 0.22), transparent 65%);
+      background: radial-gradient(
+        circle,
+        rgba(45, 212, 191, 0.22),
+        transparent 65%
+      );
       top: -180px;
       right: -120px;
     }
     &--2 {
       width: 460px;
       height: 460px;
-      background: radial-gradient(circle, rgba(124, 108, 255, 0.16), transparent 60%);
+      background: radial-gradient(
+        circle,
+        rgba(124, 108, 255, 0.16),
+        transparent 60%
+      );
       bottom: -220px;
       left: -140px;
     }
@@ -356,22 +428,40 @@ onMounted(() => {
     display: grid;
     place-items: center;
     background:
-      radial-gradient(circle at 34% 28%, rgba(45, 212, 191, 0.35), transparent 45%),
-      radial-gradient(circle at 70% 75%, rgba(76, 201, 255, 0.25), transparent 45%),
+      radial-gradient(
+        circle at 34% 28%,
+        rgba(45, 212, 191, 0.35),
+        transparent 45%
+      ),
+      radial-gradient(
+        circle at 70% 75%,
+        rgba(76, 201, 255, 0.25),
+        transparent 45%
+      ),
       linear-gradient(150deg, #0f3a52, #0a2034 55%, #0a2c2a);
     border: 1px solid rgba(139, 224, 214, 0.35);
-    box-shadow: inset 0 0 70px rgba(45, 212, 191, 0.18), 0 0 90px -20px rgba(45, 212, 191, 0.5);
+    box-shadow:
+      inset 0 0 70px rgba(45, 212, 191, 0.18),
+      0 0 90px -20px rgba(45, 212, 191, 0.5);
     animation: floaty 6s ease-in-out infinite;
     overflow: hidden;
 
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       inset: 0;
       border-radius: 50%;
       background:
-        repeating-linear-gradient(0deg, rgba(139, 224, 214, 0.08) 0 1px, transparent 1px 34px),
-        repeating-linear-gradient(90deg, rgba(139, 224, 214, 0.08) 0 1px, transparent 1px 34px);
+        repeating-linear-gradient(
+          0deg,
+          rgba(139, 224, 214, 0.08) 0 1px,
+          transparent 1px 34px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          rgba(139, 224, 214, 0.08) 0 1px,
+          transparent 1px 34px
+        );
       opacity: 0.5;
     }
   }
@@ -401,7 +491,11 @@ onMounted(() => {
     position: absolute;
     inset: -70px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(76, 201, 255, 0.12), transparent 65%);
+    background: radial-gradient(
+      circle,
+      rgba(76, 201, 255, 0.12),
+      transparent 65%
+    );
     filter: blur(10px);
   }
 }
@@ -423,19 +517,35 @@ onMounted(() => {
 }
 
 @keyframes floaty {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-14px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
 }
 
 @keyframes satellite-orbit {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(26px, 18px) rotate(12deg); }
-  50% { transform: translate(-10px, 40px) rotate(-8deg); }
-  75% { transform: translate(-30px, 8px) rotate(6deg); }
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(26px, 18px) rotate(12deg);
+  }
+  50% {
+    transform: translate(-10px, 40px) rotate(-8deg);
+  }
+  75% {
+    transform: translate(-30px, 8px) rotate(6deg);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .float-card {
@@ -538,7 +648,7 @@ onMounted(() => {
   &--bottom {
     background: linear-gradient(
       0deg,
-      rgba(45, 212, 191, 0.30) 0%,
+      rgba(45, 212, 191, 0.3) 0%,
       rgba(45, 212, 191, 0.12) 26%,
       rgba(45, 212, 191, 0.03) 52%,
       rgba(7, 21, 35, 0.92) 80%,
@@ -595,7 +705,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: transform 0.3s ease, border-color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease;
   overflow: visible;
 
   &:hover {
@@ -696,7 +808,11 @@ onMounted(() => {
 
 .ranks {
   padding: 26px;
-  background: linear-gradient(168deg, rgba(255, 196, 77, 0.07), rgba(9, 24, 39, 0.9));
+  background: linear-gradient(
+    168deg,
+    rgba(255, 196, 77, 0.07),
+    rgba(9, 24, 39, 0.9)
+  );
 
   &__head {
     display: flex;
@@ -798,7 +914,12 @@ onMounted(() => {
   align-items: center;
   gap: 24px;
   padding: 34px 38px;
-  background: linear-gradient(140deg, rgba(45, 212, 191, 0.14), rgba(76, 201, 255, 0.08) 60%, rgba(9, 24, 39, 0.9));
+  background: linear-gradient(
+    140deg,
+    rgba(45, 212, 191, 0.14),
+    rgba(76, 201, 255, 0.08) 60%,
+    rgba(9, 24, 39, 0.9)
+  );
 
   h3 {
     font-size: 22px;
