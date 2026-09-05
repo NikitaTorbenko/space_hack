@@ -18,6 +18,50 @@ const ACTIVE_SET: Record<string, typeof ACHIEVEMENTS> = {
 
 const STORAGE_KEY = 'user:v1'
 
+const FIRST_SEED = {
+  joinedEventIds: ['ev-1', 'ev-7'],
+  completedEventIds: ['ev-3', 'ev-5', 'ev-14'],
+  completedCourseIds: ['course-eco-basics', 'course-waste-sort'],
+}
+
+function seedUnlock(p: UserProfile, condition: string, value: number): void {
+  const list = (ACTIVE_SET[condition] ?? []) as typeof ACHIEVEMENTS
+  const newly = list.filter((a) => !p.achievementIds.includes(a.id) && value >= a.target)
+  newly.forEach((a) => {
+    p.achievementIds.push(a.id)
+    p.xp += a.bonusXp
+    p.socialPoints += a.bonusPoints
+  })
+}
+
+function applyFirstSeed(p: UserProfile): void {
+  p.joinedEventIds = [...FIRST_SEED.joinedEventIds]
+  p.completedEventIds = [...FIRST_SEED.completedEventIds]
+  p.completedCourseIds = [...FIRST_SEED.completedCourseIds]
+  let xp = 0
+  let points = 0
+  let kg = 0
+  FIRST_SEED.completedEventIds.forEach((id) => {
+    const e = getEvent(id)
+    if (!e) return
+    xp += e.rewardXp
+    points += e.rewardPoints
+    kg += eventKgByLevel(e.pollution)
+  })
+  COURSES.filter((c) => FIRST_SEED.completedCourseIds.includes(c.id)).forEach((c) => {
+    xp += c.rewardXp
+    points += c.rewardPoints
+  })
+  p.xp = xp
+  p.socialPoints = points
+  p.kgWaste = kg
+  p.cleanupsDone = FIRST_SEED.completedEventIds.length
+  seedUnlock(p, 'cleanups', p.cleanupsDone)
+  seedUnlock(p, 'points', p.socialPoints)
+  seedUnlock(p, 'kg', p.kgWaste)
+  seedUnlock(p, 'joined', p.joinedEventIds.length)
+}
+
 let uid = 1
 function nextId(prefix: string): string {
   return `${prefix}-${uid++}-${Date.now().toString(36)}`
@@ -95,8 +139,10 @@ export const useUserStore = defineStore('user', () => {
   const isAuthed = computed(() => profile.value !== null)
 
   function login(name: string, email: string, city: string): void {
-    profile.value = freshProfile(name.trim() || 'Хранитель берега', email.trim(), city.trim() || 'Новый город')
-    ui.toast(`Добро пожаловать, ${profile.value.name}! Прокачай свой первый уровень 🌱`, 'success')
+    const p = freshProfile(name.trim() || 'Хранитель берега', email.trim(), city.trim() || 'Новый город')
+    applyFirstSeed(p)
+    profile.value = p
+    ui.toast(`Добро пожаловать, ${p.name}! Первые записи и курсы уже в кабинете 🌱`, 'success')
   }
 
   function loginDemo(): void {

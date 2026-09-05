@@ -176,18 +176,18 @@ function placeTooltip(kind: 'pollution' | 'reserve', id: string, vx: number, vy:
   const el = svgRef.value
   if (!el) return
   const r = el.getBoundingClientRect()
-  const fx = r.width / W
-  const fy = r.height / H
+  const sw = r.width
+  const sh = r.height
+  const s = Math.min(sw / W, sh / H)
+  const offX = (sw - W * s) / 2
+  const offY = (sh - H * s) / 2
+  const centerX = offX + vx * s
+  const top = offY + vy * s
   const pad = 16
-  const boxW = Math.min(300, r.width - pad * 2)
-  const centerX = vx * fx
+  const boxW = Math.min(300, sw - pad * 2)
   const halfW = boxW / 2
-  const left = Math.min(
-    Math.max(centerX, pad + halfW),
-    Math.max(pad + halfW, r.width - halfW - pad),
-  )
+  const left = Math.min(Math.max(centerX, pad + halfW), Math.max(pad + halfW, sw - halfW - pad))
   const arrowPct = Math.min(92, Math.max(8, 50 + ((centerX - left) / boxW) * 100))
-  const top = vy * fy
   const below = top < 240
   clearHoverTimer()
   regionTooltip.value = null
@@ -251,13 +251,44 @@ function reserveById(id: string): Reserve | undefined {
 
 const mapHolder = ref<HTMLElement | null>(null)
 
+const isFullscreen = ref(false)
+
+function onFsChange() {
+  const doc = document as Document & { webkitFullscreenElement?: Element }
+  isFullscreen.value = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement)
+}
+
+function toggleFullscreen() {
+  const el = mapHolder.value
+  if (!el) return
+  const doc = document as Document & {
+    webkitFullscreenElement?: Element
+    webkitExitFullscreen?: () => void
+  }
+  const elAny = el as HTMLElement & { webkitRequestFullscreen?: () => void }
+  if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+    if (doc.exitFullscreen) doc.exitFullscreen()
+    else doc.webkitExitFullscreen?.()
+  } else if (el.requestFullscreen) {
+    el.requestFullscreen().catch(() => undefined)
+  } else if (elAny.webkitRequestFullscreen) {
+    elAny.webkitRequestFullscreen()
+  } else {
+    isFullscreen.value = true
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', onDocClick)
+  document.addEventListener('fullscreenchange', onFsChange)
+  document.addEventListener('webkitfullscreenchange', onFsChange)
   loadMap()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
+  document.removeEventListener('fullscreenchange', onFsChange)
+  document.removeEventListener('webkitfullscreenchange', onFsChange)
   clearHoverTimer()
   placedPollutions.value = []
   placedReserves.value = []
@@ -265,7 +296,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="mapHolder" class="ru-map" :class="{ 'ru-map--loading': loading }">
+  <div
+    ref="mapHolder"
+    class="ru-map"
+    :class="{ 'ru-map--loading': loading, 'ru-map--fullscreen': isFullscreen }"
+  >
     <div v-if="loading" class="ru-map__skeleton">
       <span class="skeleton-pulse"></span>
       <p>Подключаемся к спутнику и загружаем карту…</p>
@@ -329,7 +364,7 @@ onBeforeUnmount(() => {
               filter="url(#marker-glow)"
             />
             <circle class="rm__dot" cx="0" cy="-7" r="4.4" />
-            <circle class="rm__hit" r="18" />
+            <circle class="rm__hit" r="24" />
           </g>
         </g>
 
@@ -346,7 +381,7 @@ onBeforeUnmount(() => {
           >
             <circle class="pm__pulse" r="10" />
             <circle class="pm__core" r="4.6" :fill="POLLUTION_LEVELS[m.item.level].color" filter="url(#marker-glow)" />
-            <circle class="pm__hit" r="13" />
+            <circle class="pm__hit" r="17" />
           </g>
         </g>
       </svg>
@@ -434,6 +469,18 @@ onBeforeUnmount(() => {
         </button>
         <button class="chip" :class="{ 'chip--active': showReserves }" @click="toggleReserves">
           🛡️ заповедники
+        </button>
+        <button class="chip chip--fs" @click="toggleFullscreen">
+          <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+            <path
+              d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+            />
+          </svg>
+          {{ isFullscreen ? 'Свернуть' : 'Во весь экран' }}
         </button>
       </div>
     </template>
@@ -645,6 +692,15 @@ onBeforeUnmount(() => {
   border-radius: 50%;
 }
 
+.chip--fs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  svg {
+    color: var(--mint);
+  }
+}
+
 .ru-map__reserves-badge {
   position: absolute;
   top: 14px;
@@ -822,6 +878,27 @@ onBeforeUnmount(() => {
     top: auto;
     bottom: 12px;
     right: 12px;
+  }
+}
+
+.ru-map--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  min-height: 0;
+  max-width: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .ru-map__svg {
+    width: 100vw;
+    height: 100vh;
   }
 }
 </style>
