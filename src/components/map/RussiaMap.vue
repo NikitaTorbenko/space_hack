@@ -27,9 +27,6 @@ const levelFilter = ref<LevelFilter>('all')
 const showReserves = ref(true)
 const loading = ref(true)
 
-const geojson = shallowRef<unknown>(null)
-const projectionRef = shallowRef<GeoProjection>(geoNaturalEarth1())
-const pathFn = shallowRef<(f: unknown) => string>(() => '')
 interface PlacedMarker {
   x: number
   y: number
@@ -40,10 +37,18 @@ interface PlacedReserve {
   y: number
   item: Reserve
 }
+interface RegionRow {
+  name: string
+  d: string
+  fill: string
+}
 
+let geojsonCache: unknown = null
+const projectionRef = shallowRef<GeoProjection>(geoNaturalEarth1())
+const graticulePath = shallowRef<string | null>(null)
+const regions = shallowRef<RegionRow[]>([])
 const placedPollutions = ref<PlacedMarker[]>([])
 const placedReserves = ref<PlacedReserve[]>([])
-const regionFill = shallowRef<Record<string, string>>({})
 
 const hoverHover = ref<{
   x: number
@@ -66,10 +71,11 @@ const filterLegend = [
 
 async function loadMap() {
   try {
-    const res = await fetch(russiaUrl)
-    const geo = await res.json()
-    geojson.value = geo
-    buildMap(geo)
+    if (!geojsonCache) {
+      const res = await fetch(russiaUrl)
+      geojsonCache = await res.json()
+    }
+    buildMap(geojsonCache)
   } finally {
     loading.value = false
   }
@@ -88,7 +94,6 @@ function buildMap(geo: unknown) {
   )
   projectionRef.value = projection
   const path = geoPath(projection)
-  pathFn.value = (f: unknown) => path(f as never) ?? ''
   graticulePath.value = path(geoGraticule10()) ?? null
 
   const features = (geo as { features: unknown[] }).features as Array<{
@@ -107,22 +112,22 @@ function buildMap(geo: unknown) {
   })
   const maxScore = Math.max(1, ...scoreByRegion.values())
 
-  const fill: Record<string, string> = {}
-  features.forEach((f) => {
+  regions.value = features.map((f) => {
     const name = String(f.properties?.name ?? '')
-    fill[name] = heatColor(scoreByRegion.get(name) ?? 0, maxScore)
+    const d = path(f as never) ?? ''
+    const fill = heatColor(scoreByRegion.get(name) ?? 0, maxScore)
+    return { name, d, fill }
   })
-  regionFill.value = fill
 
-  visiblePollutions.value.forEach((item) => {
+  placedPollutions.value = visiblePollutions.value.map((item) => {
     const pos = projection([item.coords.lng, item.coords.lat])
     const [x, y] = pos ?? [0, 0]
-    placedPollutions.value.push({ x, y, item })
+    return { x, y, item }
   })
-  RESERVES.forEach((item) => {
+  placedReserves.value = RESERVES.map((item) => {
     const pos = projection([item.coords.lng, item.coords.lat])
     const [x, y] = pos ?? [0, 0]
-    placedReserves.value.push({ x, y, item })
+    return { x, y, item }
   })
 }
 
@@ -140,14 +145,9 @@ function mix(a: number[], b: number[], t: number): number[] {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
 }
 
-const graticulePath = shallowRef<string | null>(null)
-
-function regionPath(f: unknown): string {
-  return pathFn.value(f) ?? ''
-}
-
 function applyFilter(next: LevelFilter) {
   levelFilter.value = next
+  hideHover()
   const projection = projectionRef.value
   placedPollutions.value = visiblePollutions.value.map((item) => {
     const pos = projection([item.coords.lng, item.coords.lat])
@@ -161,6 +161,7 @@ function toggleReserves() {
 }
 
 function showPollutionTooltip(m: PlacedMarker) {
+  clearHoverTimer()
   hoverHover.value = { x: m.x, y: m.y, kind: 'pollution', id: m.item.id }
 }
 
@@ -168,20 +169,44 @@ function onReserveClick(id: string) {
   emit('select-reserve', id)
 }
 
+let hideTimer: ReturnType<typeof setTimeout> | undefined
+
+function clearHoverTimer() {
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+    hideTimer = undefined
+  }
+}
+
 function hideHover() {
+  clearHoverTimer()
   hoverHover.value = null
 }
 
+function scheduleHideHover() {
+  clearHoverTimer()
+  hideTimer = setTimeout(() => {
+    hideTimer = undefined
+    hoverHover.value = null
+  }, 180)
+}
+
+function onDocClick() {
+  clearHoverTimer()
+  hoverHover.value = null
+  regionTooltip.value = null
+}
+
 function showRegion(name: string, ev: MouseEvent) {
+  if (!name) return
   const el = mapHolder.value
   if (!el) return
   const rect = el.getBoundingClientRect()
-  regionTooltip.value = {
-    name,
-    x: ((ev.clientX - rect.left) / rect.width) * 100,
-    y: ((ev.clientY - rect.top) / rect.height) * 100,
-  }
+  const x = Math.min(90, Math.max(10, ((ev.clientX - rect.left) / rect.width) * 100))
+  const y = Math.min(86, Math.max(14, ((ev.clientY - rect.top) / rect.height) * 100))
+  regionTooltip.value = { name, x, y }
 }
+
 function hideRegion() {
   regionTooltip.value = null
 }
@@ -208,17 +233,15 @@ function reserveById(id: string): Reserve | undefined {
 const mapHolder = ref<HTMLElement | null>(null)
 
 onMounted(() => {
+  document.addEventListener('click', onDocClick)
   loadMap()
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocClick)
+  clearHoverTimer()
   placedPollutions.value = []
   placedReserves.value = []
-})
-
-const featuresInTemplate = computed(() => {
-  const geo = geojson.value as { features?: unknown[] } | null
-  return geo?.features ?? []
 })
 </script>
 
@@ -230,7 +253,7 @@ const featuresInTemplate = computed(() => {
     </div>
 
     <template v-else>
-      <svg class="ru-map__svg" :viewBox="`0 0 ${W} ${H}`" role="img" aria-label="Карта загрязнений берегов России">
+      <svg class="ru-map__svg" :viewBox="`0 0 ${W} ${H}`" role="img" aria-label="Карта загрязнений берегов России" @click="onDocClick">
         <defs>
           <radialGradient id="ocean-glow" cx="50%" cy="46%" r="62%">
             <stop offset="0%" stop-color="#0d2c40" />
@@ -258,14 +281,14 @@ const featuresInTemplate = computed(() => {
 
         <g class="regions" @mouseleave="hideRegion">
           <path
-            v-for="(f, i) in featuresInTemplate"
-            :key="i"
-            :d="regionPath(f)"
-            :fill="regionFill[String((f as { properties?: { name?: string } }).properties?.name ?? '')] || '#102736'"
+            v-for="r in regions"
+            :key="r.name"
+            :d="r.d"
+            :fill="r.fill"
             stroke="rgba(120, 210, 205, 0.25)"
             stroke-width="0.9"
             class="region"
-            @mouseenter="showRegion(String((f as { properties?: { name?: string } }).properties?.name ?? ''), $event)"
+            @mouseenter="showRegion(r.name, $event)"
           />
         </g>
 
@@ -276,12 +299,13 @@ const featuresInTemplate = computed(() => {
             class="pm"
             :class="`pm--${m.item.level}`"
             :transform="`translate(${m.x},${m.y})`"
-            @click="showPollutionTooltip(m)"
+            @click.stop="showPollutionTooltip(m)"
             @mouseenter="showPollutionTooltip(m)"
-            @mouseleave="hideHover"
+            @mouseleave="scheduleHideHover"
           >
             <circle class="pm__pulse" r="10" />
             <circle class="pm__core" r="4.6" :fill="POLLUTION_LEVELS[m.item.level].color" filter="url(#marker-glow)" />
+            <circle class="pm__hit" r="13" />
           </g>
         </g>
 
@@ -292,9 +316,9 @@ const featuresInTemplate = computed(() => {
             class="rm"
             :class="{ 'rm--high': m.item.pollution === 'severe' }"
             :transform="`translate(${m.x},${m.y - 15})`"
-            @click="onReserveClick(m.item.id)"
-            @mouseenter="hoverHover = { x: m.x, y: m.y - 15, kind: 'reserve', id: m.item.id }"
-            @mouseleave="hideHover"
+            @click.stop="onReserveClick(m.item.id)"
+            @mouseenter="clearHoverTimer(); hoverHover = { x: m.x, y: m.y - 15, kind: 'reserve', id: m.item.id }"
+            @mouseleave="scheduleHideHover"
           >
             <circle class="rm__ring" r="17" />
             <path
@@ -303,6 +327,7 @@ const featuresInTemplate = computed(() => {
               filter="url(#marker-glow)"
             />
             <circle class="rm__dot" cx="0" cy="-7" r="4.4" />
+            <circle class="rm__hit" r="18" />
           </g>
         </g>
       </svg>
@@ -311,7 +336,14 @@ const featuresInTemplate = computed(() => {
         {{ regionTooltip.name }}
       </div>
 
-      <div v-if="hoverHover && hoverHover.kind === 'pollution'" class="ru-map__tooltip" :style="tooltipStyle(hoverHover.x, hoverHover.y)" @click.stop>
+      <div
+        v-if="hoverHover && hoverHover.kind === 'pollution'"
+        class="ru-map__tooltip ru-map__tooltip--pin"
+        :style="tooltipStyle(hoverHover.x, hoverHover.y)"
+        @click.stop
+        @mouseenter="clearHoverTimer"
+        @mouseleave="hideHover"
+      >
         <div class="tt" v-if="pollById(hoverHover.id)">
           <div class="tt__row">
             <span class="tt__level" :style="{ background: POLLUTION_LEVELS[pollById(hoverHover.id)!.level].color }">
@@ -327,7 +359,14 @@ const featuresInTemplate = computed(() => {
         </div>
       </div>
 
-      <div v-if="hoverHover && hoverHover.kind === 'reserve'" class="ru-map__tooltip" :style="tooltipStyle(hoverHover.x, hoverHover.y)" @click.stop>
+      <div
+        v-if="hoverHover && hoverHover.kind === 'reserve'"
+        class="ru-map__tooltip ru-map__tooltip--pin"
+        :style="tooltipStyle(hoverHover.x, hoverHover.y)"
+        @click.stop
+        @mouseenter="clearHoverTimer"
+        @mouseleave="hideHover"
+      >
         <div class="tt" v-if="reserveById(hoverHover.id)">
           <div class="tt__row">
             <span class="tt__badge">🌿 заповедник</span>
@@ -611,6 +650,10 @@ const featuresInTemplate = computed(() => {
   width: 300px;
   max-width: calc(100% - 40px);
 
+  &--pin {
+    pointer-events: auto;
+  }
+
   &--region {
     width: auto;
     padding: 6px 12px;
@@ -623,6 +666,13 @@ const featuresInTemplate = computed(() => {
     transform: translate(-50%, -130%);
     white-space: nowrap;
   }
+}
+
+.pm__hit,
+.rm__hit {
+  fill: none;
+  pointer-events: all;
+  cursor: pointer;
 }
 
 .tt {
@@ -687,6 +737,9 @@ const featuresInTemplate = computed(() => {
 }
 
 @media (max-width: 720px) {
+  .ru-map {
+    min-height: 0;
+  }
   .ru-map__legend {
     display: none;
   }
