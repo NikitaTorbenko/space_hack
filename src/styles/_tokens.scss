@@ -1,0 +1,53 @@
+/* ==========================================================================
+   Чистый берег — design tokens
+   ========================================================================== */
+
+:root {
+  /* palette — deep ocean / space */
+  --bg-base: #06111d;
+  --bg-soft: #0a1b29;
+  --bg-raise: #0e2233;
+  --panel: rgba(13, 34, 50, 0.72);
+  --panel-solid: #10263a;
+  --panel-2: rgba(18, 43, 62, 0.6);
+  --line: rgba(139, 224, 214, 0.13);
+  --line-strong: rgba(139, 224, 214, 0.28);
+  --white: #f2fbf9;
+
+  /* text */
+  --text: #e6f4f1;
+  --text-dim: #a5c2c0;
+  --text-faint: #72908f;
+
+  /* accents */
+  --teal: #2dd4bf;
+  --mint: #5ef0c6;
+  --cyan: #4cc9ff;
+  --green: #5be08a;
+  --gold: #ffc44d;
+  --red: #ff5b5f;
+  --amber: #ffb020;
+  --violet: #8b8cff;
+
+  --grad-primary: linear-gradient(120deg, #2dd4bf 0%, #38bdf8 55%, #7c8cff 120%);
+  --grad-primary-soft: linear-gradient(120deg, rgba(45, 212, 191, 0.22), rgba(56, 189, 248, 0.16));
+  --grad-gold: linear-gradient(120deg, #ffc44d, #ff8f5a);
+  --grad-gold-soft: linear-gradient(120deg, rgba(255, 196, 77, 0.2), rgba(255, 143, 90, 0.14));
+  --grad-card: linear-gradient(165deg, rgba(22, 54, 74, 0.78), rgba(9, 25, 39, 0.9));
+
+  /* surfaces */
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
+  --shadow-card: 0 24px 60px -30px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 42px -8px rgba(45, 212, 191, 0.35);
+  --glow-teal: 0 0 34px -6px rgba(45, 212, 191, 0.5);
+  --glow-gold: 0 0 34px -6px rgba(255, 196, 77, 0.5);
+
+  /* fonts */
+  --font-display: 'Unbounded', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+
+  --container: 1200px;
+  --header-h: 76px;
+}
