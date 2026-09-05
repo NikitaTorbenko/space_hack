@@ -120,9 +120,11 @@ onMounted(() => {
 
     <!-- ======= MAP ======= -->
     <section id="map" class="section map-section">
+      <div class="map-gate" aria-hidden="true"></div>
       <div class="map-frame" v-reveal>
         <RussiaMap @select-reserve="openReserve" />
       </div>
+      <div class="map-gate map-gate--bottom" aria-hidden="true"></div>
 
       <div class="container">
         <div class="section-head map-caption" v-reveal>
@@ -522,15 +524,36 @@ onMounted(() => {
   padding-block: 0;
 }
 
+.map-gate {
+  height: 140px;
+  background: linear-gradient(
+    180deg,
+    rgba(45, 212, 191, 0.35) 0%,
+    rgba(45, 212, 191, 0.14) 26%,
+    rgba(45, 212, 191, 0.03) 52%,
+    rgba(7, 21, 35, 0.92) 80%,
+    #071523 100%
+  );
+
+  &--bottom {
+    background: linear-gradient(
+      0deg,
+      rgba(45, 212, 191, 0.30) 0%,
+      rgba(45, 212, 191, 0.12) 26%,
+      rgba(45, 212, 191, 0.03) 52%,
+      rgba(7, 21, 35, 0.92) 80%,
+      #071523 100%
+    );
+  }
+}
+
 .map-frame {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  position: relative;
   overflow: hidden;
 
   :deep(.ru-map) {
     border-radius: 0;
-    border-inline: none;
-    border-block: none;
+    border: none;
   }
 }
 
@@ -808,6 +831,9 @@ onMounted(() => {
   }
   .map-hint {
     flex-direction: column;
+  }
+  .map-gate {
+    height: 80px;
   }
 }
 
