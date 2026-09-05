@@ -51,10 +51,11 @@ const placedPollutions = ref<PlacedMarker[]>([])
 const placedReserves = ref<PlacedReserve[]>([])
 
 const hoverHover = ref<{
-  x: number
-  y: number
   kind: 'pollution' | 'reserve'
   id: string
+  left: number
+  top: number
+  below: boolean
 } | null>(null)
 
 const regionTooltip = ref<{ name: string; x: number; y: number } | null>(null)
@@ -161,8 +162,28 @@ function toggleReserves() {
 }
 
 function showPollutionTooltip(m: PlacedMarker) {
+  placeTooltip('pollution', m.item.id, m.x, m.y)
+}
+
+function showReserveTooltip(m: PlacedReserve) {
+  placeTooltip('reserve', m.item.id, m.x, m.y - 15)
+}
+
+const svgRef = ref<SVGSVGElement | null>(null)
+
+function placeTooltip(kind: 'pollution' | 'reserve', id: string, vx: number, vy: number) {
+  const el = svgRef.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  const fx = r.width / W
+  const fy = r.height / H
+  const half = 150
+  const left = Math.min(Math.max(vx * fx, half), Math.max(half, r.width - half))
+  const top = vy * fy
+  const below = top < 240
   clearHoverTimer()
-  hoverHover.value = { x: m.x, y: m.y, kind: 'pollution', id: m.item.id }
+  regionTooltip.value = null
+  hoverHover.value = { kind, id, left, top, below }
 }
 
 function onReserveClick(id: string) {
@@ -204,23 +225,13 @@ function showRegion(name: string, ev: MouseEvent) {
   const rect = el.getBoundingClientRect()
   const x = Math.min(90, Math.max(10, ((ev.clientX - rect.left) / rect.width) * 100))
   const y = Math.min(86, Math.max(14, ((ev.clientY - rect.top) / rect.height) * 100))
+  clearHoverTimer()
+  hoverHover.value = null
   regionTooltip.value = { name, x, y }
 }
 
 function hideRegion() {
   regionTooltip.value = null
-}
-
-function tooltipStyle(x: number, y: number) {
-  const px = (x / W) * 100
-  const py = (y / H) * 100
-  const swapX = x > W * 0.72
-  const swapY = y < H * 0.2
-  return {
-    left: `${px}%`,
-    top: `${py}%`,
-    transform: `translate(${swapX ? 'calc(-100% - 22px)' : '22px'}, ${swapY ? '0' : 'calc(-100% - 6px)'})`,
-  }
 }
 
 function pollById(id: string): PollutionPoint | undefined {
@@ -253,7 +264,7 @@ onBeforeUnmount(() => {
     </div>
 
     <template v-else>
-      <svg class="ru-map__svg" :viewBox="`0 0 ${W} ${H}`" role="img" aria-label="Карта загрязнений берегов России" @click="onDocClick">
+      <svg ref="svgRef" class="ru-map__svg" :viewBox="`0 0 ${W} ${H}`" role="img" aria-label="Карта загрязнений берегов России" @click="onDocClick">
         <defs>
           <radialGradient id="ocean-glow" cx="50%" cy="46%" r="62%">
             <stop offset="0%" stop-color="#0d2c40" />
@@ -292,6 +303,28 @@ onBeforeUnmount(() => {
           />
         </g>
 
+        <g v-if="showReserves" class="reserve-markers">
+          <g
+            v-for="m in placedReserves"
+            :key="m.item.id"
+            class="rm"
+            :class="{ 'rm--high': m.item.pollution === 'severe' }"
+            :transform="`translate(${m.x},${m.y - 15})`"
+            @click.stop="onReserveClick(m.item.id)"
+            @mouseenter="showReserveTooltip(m)"
+            @mouseleave="scheduleHideHover"
+          >
+            <circle class="rm__ring" r="17" />
+            <path
+              class="rm__pin"
+              d="M0,-21 C-8.5,-21 -14,-14.5 -14,-7 C-14,1 -6,9.5 0,15.4 C6,9.5 14,1 14,-7 C14,-14.5 8.5,-21 0,-21 Z"
+              filter="url(#marker-glow)"
+            />
+            <circle class="rm__dot" cx="0" cy="-7" r="4.4" />
+            <circle class="rm__hit" r="18" />
+          </g>
+        </g>
+
         <g class="pollution-markers">
           <g
             v-for="m in placedPollutions"
@@ -308,28 +341,6 @@ onBeforeUnmount(() => {
             <circle class="pm__hit" r="13" />
           </g>
         </g>
-
-        <g v-if="showReserves" class="reserve-markers">
-          <g
-            v-for="m in placedReserves"
-            :key="m.item.id"
-            class="rm"
-            :class="{ 'rm--high': m.item.pollution === 'severe' }"
-            :transform="`translate(${m.x},${m.y - 15})`"
-            @click.stop="onReserveClick(m.item.id)"
-            @mouseenter="clearHoverTimer(); hoverHover = { x: m.x, y: m.y - 15, kind: 'reserve', id: m.item.id }"
-            @mouseleave="scheduleHideHover"
-          >
-            <circle class="rm__ring" r="17" />
-            <path
-              class="rm__pin"
-              d="M0,-21 C-8.5,-21 -14,-14.5 -14,-7 C-14,1 -6,9.5 0,15.4 C6,9.5 14,1 14,-7 C14,-14.5 8.5,-21 0,-21 Z"
-              filter="url(#marker-glow)"
-            />
-            <circle class="rm__dot" cx="0" cy="-7" r="4.4" />
-            <circle class="rm__hit" r="18" />
-          </g>
-        </g>
       </svg>
 
       <div v-if="regionTooltip" class="ru-map__tooltip ru-map__tooltip--region" :style="{ left: regionTooltip.x + '%', top: regionTooltip.y + '%' }">
@@ -339,12 +350,13 @@ onBeforeUnmount(() => {
       <div
         v-if="hoverHover && hoverHover.kind === 'pollution'"
         class="ru-map__tooltip ru-map__tooltip--pin"
-        :style="tooltipStyle(hoverHover.x, hoverHover.y)"
+        :class="{ 'ru-map__tooltip--below': hoverHover.below }"
+        :style="{ left: hoverHover.left + 'px', top: hoverHover.top + 'px' }"
         @click.stop
         @mouseenter="clearHoverTimer"
         @mouseleave="hideHover"
       >
-        <div class="tt" v-if="pollById(hoverHover.id)">
+        <div class="tt" v-if="pollById(hoverHover.id)" :style="{ '--tt-accent': POLLUTION_LEVELS[pollById(hoverHover.id)!.level].color }">
           <div class="tt__row">
             <span class="tt__level" :style="{ background: POLLUTION_LEVELS[pollById(hoverHover.id)!.level].color }">
               {{ POLLUTION_LEVELS[pollById(hoverHover.id)!.level].label }}
@@ -362,12 +374,13 @@ onBeforeUnmount(() => {
       <div
         v-if="hoverHover && hoverHover.kind === 'reserve'"
         class="ru-map__tooltip ru-map__tooltip--pin"
-        :style="tooltipStyle(hoverHover.x, hoverHover.y)"
+        :class="{ 'ru-map__tooltip--below': hoverHover.below }"
+        :style="{ left: hoverHover.left + 'px', top: hoverHover.top + 'px' }"
         @click.stop
         @mouseenter="clearHoverTimer"
         @mouseleave="hideHover"
       >
-        <div class="tt" v-if="reserveById(hoverHover.id)">
+        <div class="tt" v-if="reserveById(hoverHover.id)" style="--tt-accent: var(--teal)">
           <div class="tt__row">
             <span class="tt__badge">🌿 заповедник</span>
             <span class="tt__level" :style="{ background: POLLUTION_LEVELS[reserveById(hoverHover.id)!.pollution].color }">
@@ -652,6 +665,35 @@ onBeforeUnmount(() => {
 
   &--pin {
     pointer-events: auto;
+    transform: translate(-50%, calc(-100% - 18px));
+    animation: tt-in 0.16s ease both;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: -7px;
+      transform: translateX(-50%) rotate(45deg);
+      width: 12px;
+      height: 12px;
+      background: rgba(9, 24, 39, 0.94);
+      border-right: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line-strong);
+      border-bottom-right-radius: 2px;
+      z-index: -1;
+    }
+
+    &.ru-map__tooltip--below {
+      transform: translate(-50%, 18px);
+      &::after {
+        top: -7px;
+        bottom: auto;
+        border: 0;
+        border-top: 1px solid var(--line-strong);
+        border-left: 1px solid var(--line-strong);
+        border-top-left-radius: 2px;
+      }
+    }
   }
 
   &--region {
@@ -668,6 +710,15 @@ onBeforeUnmount(() => {
   }
 }
 
+@keyframes tt-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .pm__hit,
 .rm__hit {
   fill: none;
@@ -676,11 +727,13 @@ onBeforeUnmount(() => {
 }
 
 .tt {
+  --tt-accent: var(--teal);
   padding: 14px 16px;
   border-radius: 16px;
   background: rgba(9, 24, 39, 0.94);
   backdrop-filter: blur(14px);
   border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--tt-accent);
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
