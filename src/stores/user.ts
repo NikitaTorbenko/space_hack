@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { UserProfile } from '@/data/types'
 import { ACHIEVEMENTS } from '@/data/achievements'
 import { EVENTS, getEvent, eventKgByLevel } from '@/data/events'
+import { COURSES } from '@/data/courses'
 import { loadJSON, saveJSON } from '@/utils/storage'
 import { useUiStore } from './ui'
 
@@ -36,6 +37,7 @@ function freshProfile(name: string, email: string, city: string): UserProfile {
     cleanupsDone: 0,
     joinedEventIds: [],
     completedEventIds: [],
+    completedCourseIds: [],
     achievementIds: [],
     favoriteReserveIds: [],
     mapViewed: false,
@@ -67,8 +69,9 @@ export function demoProfile(): UserProfile {
     socialPoints: points,
     kgWaste: Math.round(kg),
     cleanupsDone: completed.length,
-    joinedEventIds: [],
+    joinedEventIds: ['ev-1', 'ev-7', 'ev-9'],
     completedEventIds: completedIds,
+    completedCourseIds: ['course-eco-basics', 'course-remote-sensing'],
     achievementIds: ['first-cleanup', 'joined-3', 'points-100', 'map-explorer', 'favorite-1'],
     favoriteReserveIds: ['res-baikal', 'res-fem'],
     mapViewed: true,
@@ -78,6 +81,10 @@ export function demoProfile(): UserProfile {
 export const useUserStore = defineStore('user', () => {
   const ui = useUiStore()
   const profile = ref<UserProfile | null>(loadJSON<UserProfile>(STORAGE_KEY))
+
+  if (profile.value) {
+    if (!Array.isArray(profile.value.completedCourseIds)) profile.value.completedCourseIds = []
+  }
 
   watch(
     profile,
@@ -142,6 +149,18 @@ export const useUserStore = defineStore('user', () => {
     unlockCheck('kg')
   }
 
+  function completeCourse(courseId: string): boolean {
+    const current = profile.value
+    if (!current) return false
+    const course = COURSES.find((c) => c.id === courseId)
+    if (!course || current.completedCourseIds.includes(courseId)) return false
+    current.completedCourseIds.push(courseId)
+    current.xp += course.rewardXp
+    current.socialPoints += course.rewardPoints
+    ui.toast(`Курс пройден: «${course.title}» ${course.icon} +${course.rewardPoints} баллов`, 'gold')
+    return true
+  }
+
   function markMapViewed(): void {
     const current = profile.value
     if (!current || current.mapViewed) return
@@ -203,6 +222,7 @@ export const useUserStore = defineStore('user', () => {
     joinEvent,
     leaveEvent,
     completeEvent,
+    completeCourse,
     markMapViewed,
     toggleFavorite,
     isJoined,

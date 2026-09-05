@@ -5,10 +5,11 @@ import { useGamificationStore } from '@/stores/gamification'
 import { getEvent, eventKgByLevel } from '@/data/events'
 import { getReserve } from '@/data/reserves'
 import { ACHIEVEMENTS } from '@/data/achievements'
+import { COURSES } from '@/data/courses'
 
 const user = useUserStore()
 const game = useGamificationStore()
-const tab = ref<'planned' | 'history' | 'achievements' | 'leaderboard'>('planned')
+const tab = ref<'planned' | 'history' | 'courses' | 'achievements' | 'leaderboard'>('planned')
 
 const profile = computed(() => user.profile!)
 
@@ -19,6 +20,18 @@ const plannedEvents = computed(() =>
 const historyEvents = computed(() =>
   profile.value.completedEventIds.map(getEvent).filter(Boolean),
 )
+
+const completedCourses = computed(() =>
+  COURSES.filter((c) => profile.value.completedCourseIds.includes(c.id)),
+)
+
+const availableCourses = computed(() =>
+  COURSES.filter((c) => !profile.value.completedCourseIds.includes(c.id)),
+)
+
+function completeCourse(courseId: string) {
+  user.completeCourse(courseId)
+}
 
 const reserveNames = computed(() => {
   const map: Record<string, string> = {}
@@ -118,6 +131,10 @@ function leave(id: string) {
             📜 История
             <span v-if="historyEvents.length" class="tab__count">{{ historyEvents.length }}</span>
           </button>
+          <button class="tab" :class="{ 'tab--active': tab === 'courses' }" @click="tab = 'courses'">
+            📚 Мои курсы
+            <span v-if="completedCourses.length" class="tab__count">{{ completedCourses.length }}/{{ COURSES.length }}</span>
+          </button>
           <button class="tab" :class="{ 'tab--active': tab === 'achievements' }" @click="tab = 'achievements'">
             🏅 Достижения
             <span class="tab__count">{{ game.unlockedCount }}/{{ ACHIEVEMENTS.length }}</span>
@@ -174,6 +191,78 @@ function leave(id: string) {
                 <span class="reward reward--pts">+{{ ev!.rewardPoints }} баллов</span>
                 <span class="reward reward--xp">+{{ ev!.rewardXp }} опыта</span>
                 <span class="reward reward--kg">~{{ eventKgByLevel(ev!.pollution) }} кг мусора</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COURSES -->
+        <div v-if="tab === 'courses'" class="courses">
+          <div class="courses__group" v-if="completedCourses.length">
+            <h3 class="courses__title">
+              ✅ Пройденные
+              <span>{{ completedCourses.length }} из {{ COURSES.length }}</span>
+            </h3>
+            <div class="courses__grid">
+              <div
+                v-for="c in completedCourses"
+                :key="c.id"
+                class="course course--done card"
+                v-reveal
+              >
+                <div class="course__head">
+                  <span class="course__icon">{{ c.icon }}</span>
+                  <span class="course__badge">✅</span>
+                </div>
+                <h4 class="course__title">{{ c.title }}</h4>
+                <span class="course__cat">{{ c.category }}</span>
+                <ul class="course__lessons">
+                  <li v-for="(l, li) in c.lessons" :key="li">
+                    <span class="course__check">✔</span>{{ l }}
+                  </li>
+                </ul>
+                <div class="course__meta">
+                  <span>⏱ {{ c.min }} мин</span>
+                </div>
+                <div class="course__rewards">
+                  <span class="reward reward--pts">+{{ c.rewardPoints }} баллов</span>
+                  <span class="reward reward--xp">+{{ c.rewardXp }} опыта</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="courses__group" v-if="availableCourses.length">
+            <h3 class="courses__title">
+              📖 Можно пройти
+              <span>{{ availableCourses.length }}</span>
+            </h3>
+            <div class="courses__grid">
+              <div
+                v-for="c in availableCourses"
+                :key="c.id"
+                class="course card"
+                v-reveal
+              >
+                <div class="course__head">
+                  <span class="course__icon">{{ c.icon }}</span>
+                </div>
+                <h4 class="course__title">{{ c.title }}</h4>
+                <span class="course__cat">{{ c.category }}</span>
+                <p class="course__desc">{{ c.description }}</p>
+                <ul class="course__lessons">
+                  <li v-for="(l, li) in c.lessons" :key="li">📄 {{ l }}</li>
+                </ul>
+                <div class="course__meta">
+                  <span>⏱ {{ c.min }} мин · {{ c.lessons.length }} урока</span>
+                </div>
+                <div class="course__rewards">
+                  <span class="reward reward--pts">+{{ c.rewardPoints }} баллов</span>
+                  <span class="reward reward--xp">+{{ c.rewardXp }} опыта</span>
+                </div>
+                <button class="btn btn--gold btn--sm" @click="completeCourse(c.id)">
+                  🎓 Пройти курс
+                </button>
               </div>
             </div>
           </div>
@@ -546,6 +635,136 @@ function leave(id: string) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 14px;
+}
+
+.courses {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 15px;
+
+    span {
+      font-size: 11.5px;
+      color: var(--text-faint);
+      font-weight: 600;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+}
+
+.course {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &--done {
+    background: linear-gradient(160deg, rgba(45, 212, 191, 0.07), rgba(9, 24, 39, 0.8));
+    border-color: rgba(45, 212, 191, 0.3);
+
+    .course__lessons li {
+      color: var(--text-dim);
+    }
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__icon {
+    font-size: 30px;
+  }
+
+  &__badge {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(91, 227, 138, 0.14);
+    border: 1px solid rgba(91, 227, 138, 0.4);
+    font-size: 13px;
+  }
+
+  &__title {
+    font-family: var(--font-display);
+    font-size: 15px;
+    color: var(--white);
+  }
+
+  &__cat {
+    align-self: flex-start;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mint);
+    background: rgba(45, 212, 191, 0.1);
+    border: 1px solid rgba(45, 212, 191, 0.25);
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+
+  &__desc {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  &__lessons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    list-style: none;
+    font-size: 12px;
+    color: var(--text-faint);
+
+    li {
+      display: flex;
+      gap: 7px;
+      align-items: baseline;
+    }
+  }
+
+  &__check {
+    color: var(--green);
+    font-weight: 800;
+    font-size: 11px;
+  }
+
+  &__meta {
+    font-size: 11.5px;
+    color: var(--text-faint);
+  }
+
+  &__rewards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+  }
+
+  .btn {
+    align-self: flex-start;
+    margin-top: 4px;
+  }
 }
 
 .ach {

@@ -120,8 +120,12 @@ onMounted(() => {
 
     <!-- ======= MAP ======= -->
     <section id="map" class="section map-section">
+      <div class="map-frame" v-reveal>
+        <RussiaMap @select-reserve="openReserve" />
+      </div>
+
       <div class="container">
-        <div class="section-head" v-reveal>
+        <div class="section-head map-caption" v-reveal>
           <span class="eyebrow">Интерактивная карта</span>
           <h2 class="section-head__title">
             Загрязнения по данным ДЗЗ <span class="gradient-text">и точки уборок</span>
@@ -131,10 +135,6 @@ onMounted(() => {
             показывает нагрузку, цветные точки — очаги, зелёные «пины» — заповедники, где ждут
             волонтёров. Нажми на пин и запишись на уборку.
           </p>
-        </div>
-
-        <div class="map-frame" v-reveal>
-          <RussiaMap @select-reserve="openReserve" />
         </div>
 
         <div class="map-hint">
@@ -518,14 +518,28 @@ onMounted(() => {
   letter-spacing: 0.08em;
 }
 
+.map-section {
+  padding-block: 0;
+}
+
 .map-frame {
-  border-radius: 26px;
-  padding: 10px;
-  background: linear-gradient(160deg, rgba(45, 212, 191, 0.1), rgba(76, 201, 255, 0.05) 60%, transparent);
-  border: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
 
   :deep(.ru-map) {
-    border-radius: 18px;
+    border-radius: 0;
+    border-inline: none;
+    border-block: none;
+  }
+}
+
+.map-caption {
+  margin-top: 56px;
+  margin-bottom: 0;
+
+  .section-head__text {
+    max-width: 680px;
   }
 }
 

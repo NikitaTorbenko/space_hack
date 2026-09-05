@@ -56,6 +56,7 @@ const hoverHover = ref<{
   left: number
   top: number
   below: boolean
+  arrowPct: number
 } | null>(null)
 
 const regionTooltip = ref<{ name: string; x: number; y: number } | null>(null)
@@ -177,13 +178,20 @@ function placeTooltip(kind: 'pollution' | 'reserve', id: string, vx: number, vy:
   const r = el.getBoundingClientRect()
   const fx = r.width / W
   const fy = r.height / H
-  const half = 150
-  const left = Math.min(Math.max(vx * fx, half), Math.max(half, r.width - half))
+  const pad = 16
+  const boxW = Math.min(300, r.width - pad * 2)
+  const centerX = vx * fx
+  const halfW = boxW / 2
+  const left = Math.min(
+    Math.max(centerX, pad + halfW),
+    Math.max(pad + halfW, r.width - halfW - pad),
+  )
+  const arrowPct = Math.min(92, Math.max(8, 50 + ((centerX - left) / boxW) * 100))
   const top = vy * fy
   const below = top < 240
   clearHoverTimer()
   regionTooltip.value = null
-  hoverHover.value = { kind, id, left, top, below }
+  hoverHover.value = { kind, id, left, top, below, arrowPct }
 }
 
 function onReserveClick(id: string) {
@@ -351,7 +359,7 @@ onBeforeUnmount(() => {
         v-if="hoverHover && hoverHover.kind === 'pollution'"
         class="ru-map__tooltip ru-map__tooltip--pin"
         :class="{ 'ru-map__tooltip--below': hoverHover.below }"
-        :style="{ left: hoverHover.left + 'px', top: hoverHover.top + 'px' }"
+        :style="{ left: hoverHover.left + 'px', top: hoverHover.top + 'px', '--arrow-x': hoverHover.arrowPct + '%' }"
         @click.stop
         @mouseenter="clearHoverTimer"
         @mouseleave="hideHover"
@@ -375,7 +383,7 @@ onBeforeUnmount(() => {
         v-if="hoverHover && hoverHover.kind === 'reserve'"
         class="ru-map__tooltip ru-map__tooltip--pin"
         :class="{ 'ru-map__tooltip--below': hoverHover.below }"
-        :style="{ left: hoverHover.left + 'px', top: hoverHover.top + 'px' }"
+        :style="{ left: hoverHover.left + 'px', top: hoverHover.top + 'px', '--arrow-x': hoverHover.arrowPct + '%' }"
         @click.stop
         @mouseenter="clearHoverTimer"
         @mouseleave="hideHover"
@@ -581,6 +589,7 @@ onBeforeUnmount(() => {
   gap: 7px;
   font-size: 12.5px;
   color: var(--text-dim);
+  pointer-events: none;
 
   &-title {
     font-size: 10.5px;
@@ -617,11 +626,13 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  pointer-events: none;
 }
 
 .chip {
   cursor: pointer;
   transition: all 0.2s;
+  pointer-events: auto;
   b {
     color: var(--mint);
     margin-left: 2px;
@@ -639,6 +650,7 @@ onBeforeUnmount(() => {
   top: 14px;
   right: 16px;
   z-index: 5;
+  pointer-events: none;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -671,7 +683,7 @@ onBeforeUnmount(() => {
     &::after {
       content: '';
       position: absolute;
-      left: 50%;
+      left: var(--arrow-x, 50%);
       bottom: -7px;
       transform: translateX(-50%) rotate(45deg);
       width: 12px;

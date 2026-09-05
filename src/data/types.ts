@@ -52,6 +52,18 @@ export interface CleanupEvent {
   pollution: PollutionLevel
 }
 
+export interface Course {
+  id: string
+  title: string
+  icon: string
+  category: string
+  description: string
+  lessons: string[]
+  min: number
+  rewardPoints: number
+  rewardXp: number
+}
+
 export interface RankDef {
   id: string
   title: string
@@ -100,6 +112,7 @@ export interface UserProfile {
   cleanupsDone: number
   joinedEventIds: string[]
   completedEventIds: string[]
+  completedCourseIds: string[]
   achievementIds: string[]
   favoriteReserveIds: string[]
   mapViewed: boolean
